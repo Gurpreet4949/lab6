@@ -2,7 +2,7 @@ const express = require("express");
 const axios = require("axios");
 const path = require("path");
 const router = express.Router();
-const { trackAnalytics, getAnalytics } = require("../controllers/analyticsController");
+const { trackAnalytics, getAnalytics, trackButtonClick, getButtonClickAnalytics } = require("../controllers/analyticsController");
 
 const GA_MEASUREMENT_URL = "https://www.google-analytics.com/mp/collect";
 
@@ -41,14 +41,15 @@ const sendToGoogleAnalytics = async (eventName, params = {}) => {
 };
 
 // Track analytics for page visits and log Google Analytics events
-router.get('/hello', trackAnalytics, async (req, res) => {
+router.use(trackAnalytics);
+router.get('/hello', async (req, res) => {
   // Google Analytics event
   await sendToGoogleAnalytics('page_view', '/hello');
 
   res.send("This is Analytics App");
 });
 
-router.get("/about", trackAnalytics, async (req, res) => {
+router.get("/about", async (req, res) => {
   // Google Analytics event
   await sendToGoogleAnalytics("page_view", "/about");
 
@@ -57,4 +58,9 @@ router.get("/about", trackAnalytics, async (req, res) => {
 
 // Route to view analytics data from MongoDB
 router.get('/analytics', getAnalytics);
+
+// Button click tracking routes
+router.post("/button-click", trackButtonClick);
+router.get("/button-analytics", getButtonClickAnalytics);
+
 module.exports = router;
