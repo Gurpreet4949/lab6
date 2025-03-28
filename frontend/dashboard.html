@@ -1,87 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics Dashboard - Mobile API</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="dashboard">
-        <header>
-            <h1>Analytics Dashboard</h1>
-        </header>
-        
-        <div class="user-info">
-            <div class="card">
-                <h2>User Profile</h2>
-                <p>Username: <span id="username">Loading...</span></p>
-                <p>Total Hits: <span id="total-hits">0</span></p>
-            </div>
-        </div>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Analytics Dashboard - Mobile API</title>
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+	<body>
+		<div class="dashboard">
+			<header>
+				<h1>Analytics Dashboard</h1>
+			</header>
 
-        <div class="analytics-container">
-            <div class="card">
-                <h2>Recent Visits</h2>
-                <div class="visits-list" id="visits-timeline">
-                    <!-- Visits will be populated here -->
-                </div>
-            </div>
+			<div class="user-info">
+				<div class="card">
+					<h2>User Profile</h2>
+					<p>Username: <span id="username">Loading...</span></p>
+					<p>Total Hits: <span id="total-hits">0</span></p>
+				</div>
+			</div>
 
-            <div class="card">
-                <h2>Button Click Analytics</h2>
-                <div class="click-analytics" id="click-stats">
-                    <!-- Click statistics will be populated here -->
-                </div>
-            </div>
-        </div>
-    </div>
+			<div class="analytics-container">
+				<div class="card">
+					<h2>Recent Visits</h2>
+					<div class="visits-list" id="visits-timeline">
+						<!-- Visits will be populated here -->
+					</div>
+				</div>
 
-    <script>
-        // Function to fetch and update dashboard data
-        async function updateDashboard() {
-            try {
-                const response = await fetch('/api/analytics');
-                const data = await response.json();
-                
-                // Update username
-                document.getElementById('username').textContent = data.username || 'N/A';
-                
-                // Update total hits
-                document.getElementById('total-hits').textContent = data.totalHits || 0;
-                
-                // Update visits timeline
-                const visitsContainer = document.getElementById('visits-timeline');
-                visitsContainer.innerHTML = '';
-                data.visits?.forEach(visit => {
-                    const visitElement = document.createElement('div');
-                    visitElement.className = 'visit-item';
-                    visitElement.innerHTML = `
-                        <span class="visit-time">${new Date(visit.timestamp).toLocaleString()}</span>
-                    `;
-                    visitsContainer.appendChild(visitElement);
-                });
+				<div class="card">
+					<h2>Button Click Analytics</h2>
+					<div class="click-analytics" id="click-stats">
+						<!-- Click statistics will be populated here -->
+					</div>
+				</div>
+			</div>
+		</div>
 
-                // Update button clicks
-                const clickStats = document.getElementById('click-stats');
-                clickStats.innerHTML = '';
-                Object.entries(data.buttonClicks || {}).forEach(([button, count]) => {
-                    const clickElement = document.createElement('div');
-                    clickElement.className = 'click-stat';
-                    clickElement.innerHTML = `
-                        <span class="button-name">${button}:</span>
-                        <span class="click-count">${count}</span>
-                    `;
-                    clickStats.appendChild(clickElement);
-                });
-            } catch (error) {
-                console.error('Error fetching dashboard data:', error);
-            }
-        }
+		<script>
+			// Function to fetch and update dashboard data
+			async function updateDashboard() {
+				try {
+					const response = await fetch(
+						'http://localhost:3000/api/analytics/analytics'
+					);
+					const data = await response.json();
+					console.log('Dashboard data:', data); // Debug log
 
-        // Update dashboard every 30 seconds
-        updateDashboard();
-        setInterval(updateDashboard, 30000);
-    </script>
-</body>
+					// Update username
+					document.getElementById('username').textContent =
+						data.username || 'N/A';
+
+					// Update total hits
+					document.getElementById('total-hits').textContent =
+						data.totalHits || 0;
+
+					// Update visits timeline
+					const visitsContainer = document.getElementById('visits-timeline');
+					visitsContainer.innerHTML = '';
+					if (data.visits && data.visits.length > 0) {
+						data.visits.forEach(visit => {
+							const visitElement = document.createElement('div');
+							visitElement.className = 'visit-item';
+							visitElement.innerHTML = `
+                            <span class="visit-time">${new Date(
+															visit.timestamp
+														).toLocaleString()}</span>
+                            <span class="visit-endpoint">${
+															visit.endpoint
+														}</span>
+                        `;
+							visitsContainer.appendChild(visitElement);
+						});
+					} else {
+						visitsContainer.innerHTML = '<p>No visits recorded yet</p>';
+					}
+
+					// Update button clicks
+					const clickStats = document.getElementById('click-stats');
+					clickStats.innerHTML = '';
+					if (data.buttonClicks && Object.keys(data.buttonClicks).length > 0) {
+						Object.entries(data.buttonClicks).forEach(([button, count]) => {
+							const clickElement = document.createElement('div');
+							clickElement.className = 'click-stat';
+							clickElement.innerHTML = `
+                            <span class="button-name">${button}:</span>
+                            <span class="click-count">${count}</span>
+                        `;
+							clickStats.appendChild(clickElement);
+						});
+					} else {
+						clickStats.innerHTML = '<p>No button clicks recorded yet</p>';
+					}
+				} catch (error) {
+					console.error('Error fetching dashboard data:', error);
+					document.getElementById('username').textContent =
+						'Error loading data';
+					document.getElementById('total-hits').textContent = 'Error';
+					document.getElementById('visits-timeline').innerHTML =
+						'<p>Error loading visit data</p>';
+					document.getElementById('click-stats').innerHTML =
+						'<p>Error loading click data</p>';
+				}
+			}
+
+			// Update dashboard immediately and then every 5 seconds
+			updateDashboard();
+			setInterval(updateDashboard, 5000);
+		</script>
+	</body>
 </html>

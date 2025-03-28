@@ -13,7 +13,7 @@ const trackAnalytics = async (req, res, next) => {
     }
 
     // Update hit count and timestamps
-    analytics.hits++;
+    analytics.hits += 2; // Incrementing by 2 instead of 1
     analytics.timestamps.push(timestamp);
 
     // Save the updated analytics
@@ -32,7 +32,45 @@ const trackAnalytics = async (req, res, next) => {
 const getAnalytics = async (req, res) => {
   try {
     const analyticsData = await Analytics.find();
-    res.json(analyticsData);
+    const buttonClicks = await ButtonClick.find().sort({ timestamp: -1 }).limit(50);
+    
+    // Calculate total hits across all endpoints
+    const totalHits = analyticsData.reduce((sum, item) => sum + item.hits, 0);
+    
+    // Get the most recent username from button clicks if available
+    const latestClick = await ButtonClick.findOne().sort({ timestamp: -1 });
+    const username = latestClick?.username || 'Guest User';
+    
+    // Format visits for timeline
+    const visits = [];
+    analyticsData.forEach(endpoint => {
+      endpoint.timestamps.forEach(timestamp => {
+        visits.push({
+          endpoint: endpoint.endpoint,
+          timestamp
+        });
+      });
+    });
+    
+    // Sort visits by timestamp (most recent first)
+    visits.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // Count button clicks by buttonId
+    const buttonClickCounts = {};
+    buttonClicks.forEach(click => {
+      const id = click.buttonId;
+      buttonClickCounts[id] = (buttonClickCounts[id] || 0) + 1;
+    });
+    
+    // Format response for dashboard
+    const dashboardData = {
+      username,
+      totalHits,
+      visits: visits.slice(0, 20), // Limit to most recent 20 visits
+      buttonClicks: buttonClickCounts
+    };
+    
+    res.json(dashboardData);
   } catch (error) {
     console.error("Error fetching analytics data:", error);
     res.status(500).json({ error: "Error fetching analytics data" });
@@ -42,9 +80,9 @@ const getAnalytics = async (req, res) => {
 // Track button clicks
 const trackButtonClick = async (req, res) => {
   try {
-    const { buttonId } = req.body;
+    const { buttonId, username } = req.body;
     const timestamp = new Date();
-    const userId = req.headers['user-id']; // Assuming user ID is passed in headers
+    const userId = req.headers['user-id'] || 'anonymous'; // Assuming user ID is passed in headers
     const userAgent = req.headers['user-agent'];
     const ipAddress = req.ip;
 
@@ -52,6 +90,7 @@ const trackButtonClick = async (req, res) => {
       buttonId,
       timestamp,
       userId,
+      username, // Adding username field from request body
       userAgent,
       ipAddress
     });
